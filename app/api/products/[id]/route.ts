@@ -1,4 +1,4 @@
-import { prisma } from '@/prisma';
+import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/products/[id] - Obtener un producto por ID
