@@ -12,11 +12,16 @@ export async function GET(request: NextRequest){
 
         const orders = await prisma.order.findMany({
             where,
-            include: {
+            select: {
+                id: true,
+                clientName: true,
+                clientEmail: true,
+                total: true,
+                createdAt: true,
                 items: {
-                    include: {
-                        product : true
-                    }
+                select: {
+                    quantity: true
+                }
                 }
             },
             orderBy:{
@@ -24,7 +29,17 @@ export async function GET(request: NextRequest){
             }
         });
 
-        return NextResponse.json(orders);
+        // Transformar los datos para incluir el conteo de items
+        const ordersWithItemCount = orders.map(order => ({
+        id: order.id,
+        clientName: order.clientName,
+        clientEmail: order.clientEmail,
+        total: order.total,
+        createdAt: order.createdAt,
+        itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0)
+        }));
+
+        return NextResponse.json(ordersWithItemCount);
     } catch (error) {
         console.error("Error al obtener ordenes", error);
         return NextResponse.json(
