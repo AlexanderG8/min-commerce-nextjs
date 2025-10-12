@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -63,6 +64,7 @@ export function Navbar() {
               )}
             </Button>
           </Link>
+          <ThemeToggle />
         </nav>
 
         {/* Menú móvil */}
@@ -101,6 +103,10 @@ export function Navbar() {
                     {route.label}
                   </Link>
                 ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Tema</span>
+                  <ThemeToggle />
+                </div>
               </div>
             </SheetContent>
           </Sheet>

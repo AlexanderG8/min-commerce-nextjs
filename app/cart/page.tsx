@@ -31,7 +31,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="container py-10">
+      <div className="container mx-auto py-10">
         <h1 className="text-3xl font-bold mb-6">Carrito de Compras</h1>
         <div className="flex flex-col items-center justify-center py-12">
           <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
@@ -48,7 +48,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container py-10">
+    <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-6">Carrito de Compras</h1>
       
       <div className="grid gap-8 lg:grid-cols-3">
