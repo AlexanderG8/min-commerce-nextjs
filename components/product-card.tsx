@@ -6,7 +6,9 @@ import { useCartStore } from "@/lib/store/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { toast } from "sonner";
+import { ShoppingCart } from "lucide-react";
+import { useRouter } from "next/navigation";
 interface ProductCardProps {
   id: number;
   name: string;
@@ -25,6 +27,7 @@ export function ProductCard({
   imageUrl,
 }: ProductCardProps) {
   const { addItem } = useCartStore();
+  const router = useRouter();
 
   const handleAddToCart = () => {
     addItem({
@@ -32,6 +35,14 @@ export function ProductCard({
       name,
       price,
       imageUrl,
+    });
+    toast.success('Producto agregado al carrito', {
+      description: name,
+      action: {
+        label: 'Ver carrito',
+        onClick: () => router.push('/cart'),
+      },
+      icon: <ShoppingCart className="h-4 w-4" />,
     });
   };
 
