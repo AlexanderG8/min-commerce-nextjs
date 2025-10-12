@@ -4,12 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/orders/[id] - Obtener una orden por ID
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const paramsResolve = await context.params;
-    // Acceder al ID directamente desde context.params
-    const orderId = await paramsResolve.id;
+    // Acceder al ID directamente desde params
+    const orderId = params.id;
     
     if (!orderId) {
       return NextResponse.json(
