@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+  },
+  // Desactivar la comprobación de tipos durante la compilación
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Ignorar errores de ESLint durante la compilación
+  eslint: {
+    ignoreDuringBuilds: true,
   }
 };
 

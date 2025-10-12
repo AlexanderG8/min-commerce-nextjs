@@ -1,10 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Definición de tipo para los parámetros
+type RouteParams = {
+  params: {
+    id: string;
+  };
+};
+
 // GET /api/orders/[id] - Obtener una orden por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
     // Acceder al ID directamente desde params
