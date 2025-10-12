@@ -11,30 +11,16 @@ import { useEffect, useState } from "react";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { getTotalItems } = useCartStore();
-  const [cartItemCount, setCartItemCount] = useState(0);
+  const cartItems = useCartStore((state) => state.items);
   const [isMounted, setIsMounted] = useState(false);
 
   // Solo ejecutar en el cliente después del montaje
   useEffect(() => {
     setIsMounted(true);
-    setCartItemCount(getTotalItems());
-  }, [getTotalItems]);
+  }, []);
 
-  // Actualizar el contador cuando cambia el carrito
-  useEffect(() => {
-    // Suscribirse a cambios en el carrito
-    const unsubscribe = useCartStore.subscribe(
-      (state) => state.items,
-      () => {
-        setCartItemCount(getTotalItems());
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [getTotalItems]);
+  // Calcular el total de items
+  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const routes = [
     { href: "/", label: "Inicio" },

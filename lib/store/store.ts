@@ -1,6 +1,6 @@
 // Aquí estoy implementando el store de zustand para manejar el estado del carrito de compras
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 // Defino el tipo para un ítem en el carrito
 export type CartItem = {
@@ -70,6 +70,8 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cart-storage',
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
     }
   )
 );
