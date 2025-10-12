@@ -30,6 +30,10 @@ model Order {
   id        Int        @id @default(autoincrement())
   clientName String
   clientEmail String
+  clientAddress String
+  clientCity String
+  clientPostalCode String
+  clientPhone String
   total     Float
   items     OrderItem[]
   createdAt DateTime    @default(now())

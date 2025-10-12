@@ -38,9 +38,9 @@ export async function POST(request: NextRequest){
     try {
         const body = await request.json();
         // Validación
-        if(!body.clientName || !body.clientEmail || !body.items || body.items.length === 0){
+        if(!body.clientName || !body.clientEmail || !body.clientAddress || !body.clientCity || !body.clientPostalCode || !body.clientPhone || !body.items || body.items.length === 0){
             return NextResponse.json(
-                {error: "Nombre del cliente, email y al menos un item son requeridos"},
+                {error: "Nombre del cliente, email, dirección, ciudad, código postal, teléfono y al menos un item son requeridos"},
                 {status: 400}
             );
         }
@@ -84,6 +84,10 @@ export async function POST(request: NextRequest){
                 data: {
                     clientName: body.clientName,
                     clientEmail: body.clientEmail,
+                    clientAddress: body.clientAddress,
+                    clientCity: body.clientCity,
+                    clientPostalCode: body.clientPostalCode,
+                    clientPhone: body.clientPhone,
                     total,
                     items: {
                         create: itemsWithDetails
