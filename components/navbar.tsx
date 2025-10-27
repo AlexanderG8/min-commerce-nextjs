@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import AuthButton from "./authbutton";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -27,6 +28,7 @@ export function Navbar() {
     { href: "/", label: "Inicio" },
     { href: "/catalog", label: "Catálogo" },
     { href: "/order", label: "Mis Pedidos" },
+    // { href: "/profile", label: "Perfil" },
   ];
 
   return (
@@ -37,7 +39,7 @@ export function Navbar() {
         </Link>
         
         {/* Navegación para pantallas medianas y grandes */}
-        <nav className="ml-auto hidden md:flex md:items-center md:gap-6">
+        <nav className="ml-auto hidden md:flex md:items-center md:gap-4">
           {routes.map((route) => (
             <Link
               key={route.href}
@@ -51,20 +53,23 @@ export function Navbar() {
               {route.label}
             </Link>
           ))}
-          <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {isMounted && cartItemCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
-                >
-                  {cartItemCount}
-                </Badge>
-              )}
-            </Button>
-          </Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-2 ml-2">
+            <AuthButton />
+            <Link href="/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {isMounted && cartItemCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
+                  >
+                    {cartItemCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+            <ThemeToggle />
+          </div>
         </nav>
 
         {/* Menú móvil */}
@@ -103,6 +108,9 @@ export function Navbar() {
                     {route.label}
                   </Link>
                 ))}
+                <div className="border-t pt-4 mt-4">
+                  <AuthButton />
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">Tema</span>
                   <ThemeToggle />
