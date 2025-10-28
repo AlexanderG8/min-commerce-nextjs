@@ -4,11 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/products/[id] - Obtener un producto por ID
 export async function GET(
     request: NextRequest,
-    {params} : {params: {id : number}}
+    {params} : {params: {id : string}}
 ){
     try{
+        // Convertir a número
+        const productId = parseInt(params.id);
+        // Validar ID
+        if(isNaN(productId)){
+            return NextResponse.json(
+                {error: 'ID de producto inválido'},
+                {status: 400}
+            );
+        }
         const product = await prisma.product.findUnique({
-            where: { id: params.id }
+            where: { id: productId }
         });
         // Validamos
         if(!product){
@@ -19,20 +28,33 @@ export async function GET(
         }
         return NextResponse.json(product);
     } catch(error){
-
+        console.error('Error al obtener producto:', error);
+        return NextResponse.json(
+            {error: 'Error al obtener producto'},
+            {status: 500}
+        );
     }
 }
 
 // PUT /api/products/[id] - Actualizar un producto
 export async function PUT(
     request: NextRequest,
-    {params}: {params : {id: number}}
+    {params}: {params : {id: string}}
 ){
     try {
         const body = await request.json();
+        // Convertir a número
+        const productId = parseInt(params.id);
+        // Validar ID
+        if(isNaN(productId)){
+            return NextResponse.json(
+                {error: 'ID de producto inválido'},
+                {status: 400}
+            );
+        }
         // Buscar producto
         const existingProduct = await prisma.product.findUnique({
-            where: {id: params.id},
+            where: {id: productId},
         });
         //Validar si existe
         if(!existingProduct){
@@ -43,7 +65,7 @@ export async function PUT(
         }
         // Actualizar producto
         const updatedProduct = await prisma.product.update({
-            where: {id: params.id},
+            where: {id: productId},
             data: {
                 name: body.name !== undefined ? body.name : existingProduct.name,
                 description: body.description !== undefined ? body.description : existingProduct.description,
@@ -69,12 +91,21 @@ export async function PUT(
 // DELETE /api/products/[id] - Eliminar un producto
 export async function DELETE(
     request: NextRequest,
-    {params}: {params: {id : number}}
+    {params}: {params: {id : string}}
 ){
     try {
+        // Convertir a número
+        const productId = parseInt(params.id);
+        // Validar ID
+        if(isNaN(productId)){
+            return NextResponse.json(
+                {error: 'ID de producto inválido'},
+                {status: 400}
+            );
+        }
         // Buscar producto
         const existingProduct = await prisma.product.findUnique({
-            where: {id : params.id},
+            where: {id : productId},
         });
         // Validar si existe
         if(!existingProduct){
@@ -83,9 +114,19 @@ export async function DELETE(
                 {status: 404}
             );
         }
+        // Validar si hay pedidos con este producto
+        const orderItemsWithProduct = await prisma.orderItem.findMany({
+            where: {productId: productId},
+        });
+        if(orderItemsWithProduct.length > 0){
+            return NextResponse.json(
+                {error: 'No se puede eliminar el producto porque cuenta con pedidos.'},
+                {status: 400}
+            );
+        }
         // Eliminar producto
         await prisma.product.delete({
-            where: {id : params.id}
+            where: {id : productId}
         });
         // Retornar respuesta exitosa
         return NextResponse.json(

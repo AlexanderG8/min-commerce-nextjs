@@ -10,11 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import AuthButton from "./authbutton";
+import { useSession } from "next-auth/react";
 
 export function Navbar() {
   const pathname = usePathname();
   const cartItems = useCartStore((state) => state.items);
   const [isMounted, setIsMounted] = useState(false);
+  const { data: session } = useSession();
 
   // Solo ejecutar en el cliente después del montaje
   useEffect(() => {
@@ -28,8 +30,11 @@ export function Navbar() {
     { href: "/", label: "Inicio" },
     { href: "/catalog", label: "Catálogo" },
     { href: "/order", label: "Mis Pedidos" },
-    // { href: "/profile", label: "Perfil" },
   ];
+
+  if(session?.user?.role === "admin"){
+    routes.push({ href: "/admin", label: "Admin" });
+  }
 
   return (
     <header className="border-b bg-background">

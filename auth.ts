@@ -9,6 +9,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Google
   ],
+  pages:{
+    signIn: "/", // Redirección si no hay sesión
+  },
   callbacks: {
     // 1. Se ejecuta cada vez que se crea o actualiza una sesión (p. ej. al llamar auth() o useSession).
     // 2. Recibe el objeto session (lo que devolverá al cliente) y el token JWT decodificado.
@@ -17,6 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub
+        session.user.role = token.role as "admin" | "user"
       }
       return session
     },
@@ -27,6 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     jwt({ token, user }) {
       if (user) {
         token.sub = user.id
+        token.role = user.email === "mpalexanderg@gmail.com" ? "admin" : "user"
       }
       return token
     },
