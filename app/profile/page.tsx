@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default async function Profile() {
   const session = await auth();
-
+  console.log(session?.user?.role)
   if (!session) {
     return (
       <div className="container mx-auto px-4 py-8">
