@@ -177,6 +177,10 @@ Desarrollado por [Alexander Gomez](https://linksxander.netlify.app/)
 
 ---
 
+## 🔄 Actualizaciones
+
+- [Update 20251028](documentations/Update_20251028.md)
+
 <p align="center">
   <sub>Construido con ☕ & 💙 usando Next.js y React</sub>
 </p>
