@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from '@/auth'
 
 // Rutas que requieren autenticación
 const protectedRoutes = ['/profile', '/order']
@@ -8,50 +7,57 @@ const protectedRoutes = ['/profile', '/order']
 // Rutas que requieren rol de administrador
 const adminRoutes = ['/admin']
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Verificar si la ruta requiere rol de administrador
-  const isAdminRoute = adminRoutes.some(route => 
-    pathname.startsWith(route)
-  )
-
-  // Verificar si la ruta actual está protegida
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  )
-
-  if (isAdminRoute) {
-    // Obtener la sesión del usuario
-    const session = await auth()
-
-    // Si no hay sesión, redirigir a la página principal
-    if (!session) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
-
-    // Si hay sesión pero no es admin, redirigir a página de no autorización
-    if (session.user.role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/unauthorized'
-      return NextResponse.redirect(url)
-    }
-  } else if (isProtectedRoute) {
-    // Obtener la sesión del usuario
-    const session = await auth()
-
-    // Si no hay sesión, redirigir a la página principal
-    if (!session) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
+// Función optimizada para verificar autenticación usando cookies directamente
+function getSessionFromCookies(request: NextRequest) {
+  console.log('🔍 Iniciando verificación de sesión...');
+  
+  // Check for session token
+  const sessionToken = request.cookies.get('authjs.session-token')?.value;
+  
+  if (!sessionToken) {
+    console.log('❌ No se encontró token de sesión');
+    return null;
   }
 
-  // Continuar con la solicitud si no es una ruta protegida o si está autenticado
-  return NextResponse.next()
+  console.log('✅ Token de sesión encontrado');
+
+  // For NextAuth v5 with database sessions, we can't decode the encrypted token
+  // in middleware. Instead, we'll use a simple approach:
+  // If there's a session token, assume the user is authenticated
+  // Pages will handle role verification through server components
+  
+  console.log('✅ Usuario autenticado (token de sesión presente)');
+  
+  return { 
+    user: { 
+      email: 'authenticated-user', // Placeholder
+      role: 'user' // Default role, pages will verify admin status
+    } 
+  };
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Rutas que requieren autenticación
+  const protectedRoutes = ['/admin', '/profile', '/checkout', '/order'];
+  
+  // Verificar si la ruta actual requiere autenticación
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  
+  if (isProtectedRoute) {
+    const session = getSessionFromCookies(request);
+    
+    if (!session) {
+      console.log(`❌ Acceso denegado a ${pathname} - No autenticado`);
+      return NextResponse.redirect(new URL('/signin', request.url));
+    }
+    
+    console.log(`✅ Acceso permitido a ${pathname} - Usuario autenticado`);
+    // Let the page components handle admin role verification
+  }
+  
+  return NextResponse.next();
 }
 
 // Configurar en qué rutas debe ejecutarse el middleware
