@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logUserActivity } from '@/lib/activity-logger';
 
 // GET /api/orders - Obtener todas las ordenes
 export async function GET(request: NextRequest){
@@ -207,6 +208,18 @@ export async function POST(request: NextRequest){
 
             return newOrder;
         });
+        
+        // Registrar actividad de creación de orden
+        await logUserActivity(
+            parseInt(session.user.id),
+            'ORDER_CREATED',
+            `Orden #${order.id} creada exitosamente`,
+            {
+                orderId: order.id,
+                orderTotal: total,
+                orderItems: itemsWithDetails.length
+            }
+        );
         
         return NextResponse.json(order, {status:201});
     } catch (error) {

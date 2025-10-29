@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { prisma } from "@/lib/prisma"
+import { logUserActivity } from "@/lib/activity-logger"
 
 // Sign in : es para autenticar a un usuario y crear una sesión.
 // Sign out : es para cerrar la sesión de un usuario.
@@ -37,10 +38,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Actualizar el ID del usuario para usar nuestro ID de base de datos
             user.id = newUser.id.toString();
             console.log(`Nuevo usuario registrado: ${newUser.email} (ID: ${newUser.id})`);
+            
+            // Registrar actividad de primer login
+            await logUserActivity(
+              newUser.id,
+              'LOGIN',
+              'Usuario registrado y autenticado por primera vez'
+            );
           } else {
             // Usuario existente, usar el ID de nuestra base de datos
             user.id = existingUser.id.toString();
             console.log(`Usuario existente logueado: ${existingUser.email} (ID: ${existingUser.id})`);
+            
+            // Registrar actividad de login
+            await logUserActivity(
+              existingUser.id,
+              'LOGIN',
+              'Usuario autenticado exitosamente'
+            );
           }
         } catch (error) {
           console.error('Error al registrar/verificar usuario:', error);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Plus, Edit, Trash2, Eye, Package, ShoppingCart, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -489,7 +490,7 @@ export default function AdminPage() {
           {showOrderDetails && selectedOrder && (
             <Card>
               <CardHeader>
-                <CardTitle>Detalles de la Ordenn #{selectedOrder.id}</CardTitle>
+                <CardTitle>Detalles de la Orden #{selectedOrder.id}</CardTitle>
                 <p className="text-muted-foreground">
                   {new Date(selectedOrder.createdAt).toLocaleDateString("es-ES", {
                     year: "numeric",
@@ -504,7 +505,7 @@ export default function AdminPage() {
                 {/* Información del cliente */}
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Información del Cliente</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                     <div>
                       <p className="text-sm text-muted-foreground">Nombre</p>
                       <p className="font-medium">{selectedOrder.clientName}</p>
@@ -534,15 +535,17 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     {selectedOrder.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                        <div className="relative h-16 w-16 overflow-hidden rounded-md bg-gray-100">
+                        <div className="relative h-16 w-16 overflow-hidden rounded-md bg-muted">
                           {item.product.imageUrl ? (
-                            <img
+                            <Image
                               src={item.product.imageUrl}
                               alt={item.product.name}
-                              className="h-full w-full object-cover"
+                              fill
+                              className="object-cover"
+                              sizes="64px"
                             />
                           ) : (
-                            <div className="h-full w-full flex items-center justify-center text-gray-400">
+                            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
                               <Package className="h-6 w-6" />
                             </div>
                           )}
