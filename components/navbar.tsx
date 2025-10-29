@@ -15,25 +15,29 @@ import { useSession } from "next-auth/react";
 export function Navbar() {
   const pathname = usePathname();
   const cartItems = useCartStore((state) => state.items);
+  const hasHydrated = useCartStore((state) => state._hasHydrated);
   const [isMounted, setIsMounted] = useState(false);
   const { data: session } = useSession();
 
   // Solo ejecutar en el cliente después del montaje
   useEffect(() => {
     setIsMounted(true);
+    // Hidratar el store manualmente
+    useCartStore.persist.rehydrate();
   }, []);
 
-  // Calcular el total de items
-  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+  // Calcular el total de items solo si está hidratado
+  const cartItemCount = hasHydrated ? cartItems.reduce((total, item) => total + item.quantity, 0) : 0;
 
   const routes = [
     { href: "/", label: "Inicio" },
     { href: "/catalog", label: "Catálogo" },
-    { href: "/order", label: "Mis Pedidos" },
   ];
 
   if(session?.user?.role === "admin"){
     routes.push({ href: "/admin", label: "Admin" });
+  }else{
+    routes.push({ href: "/order", label: "Mis Pedidos" });
   }
 
   return (
@@ -63,7 +67,7 @@ export function Navbar() {
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
-                {isMounted && cartItemCount > 0 && (
+                {isMounted && hasHydrated && cartItemCount > 0 && (
                   <Badge 
                     variant="destructive" 
                     className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
@@ -82,7 +86,7 @@ export function Navbar() {
           <Link href="/cart" className="mr-2">
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
-              {isMounted && cartItemCount > 0 && (
+              {isMounted && hasHydrated && cartItemCount > 0 && (
                 <Badge 
                   variant="destructive" 
                   className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"

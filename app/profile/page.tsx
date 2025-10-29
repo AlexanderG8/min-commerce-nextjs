@@ -1,14 +1,67 @@
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Calendar, ShoppingBag, Settings, Edit, LogOut } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { User, Mail, Calendar, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { ActivityLog, ActivityDisplayItem } from "@/types/activity";
+import { getUserRecentActivities, getUserStatistics } from "@/lib/activity-logger";
+
+// Función para formatear las actividades para mostrar
+function formatActivities(activities: ActivityLog[]): ActivityDisplayItem[] {
+  return activities.map(activity => {
+    const timeAgo = getTimeAgo(new Date(activity.createdAt));
+    
+    switch (activity.action) {
+      case 'LOGIN':
+        return {
+          id: activity.id,
+          title: 'Sesión iniciada',
+          description: activity.description,
+          time: timeAgo,
+          type: 'login' as const,
+          metadata: activity.metadata
+        };
+      case 'ORDER_CREATED':
+        return {
+          id: activity.id,
+          title: 'Pedido realizado',
+          description: activity.description,
+          time: timeAgo,
+          type: 'order' as const,
+          metadata: activity.metadata
+        };
+      default:
+        return {
+          id: activity.id,
+          title: 'Actividad',
+          description: activity.description,
+          time: timeAgo,
+          type: 'login' as const,
+          metadata: activity.metadata
+        };
+    }
+  });
+}
+
+// Función para calcular tiempo transcurrido
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return 'Hace unos momentos';
+  if (diffInSeconds < 3600) return `Hace ${Math.floor(diffInSeconds / 60)} minutos`;
+  if (diffInSeconds < 86400) return `Hace ${Math.floor(diffInSeconds / 3600)} horas`;
+  if (diffInSeconds < 2592000) return `Hace ${Math.floor(diffInSeconds / 86400)} días`;
+  return date.toLocaleDateString('es-ES');
+}
 
 export default async function Profile() {
   const session = await auth();
   console.log(session?.user?.role)
+  
   if (!session) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -29,6 +82,14 @@ export default async function Profile() {
     );
   }
 
+  // Obtener datos del usuario autenticado
+  const [activities, statistics] = await Promise.all([
+    getUserRecentActivities(parseInt(session.user.id), 5),
+    getUserStatistics(parseInt(session.user.id))
+  ]);
+
+  const formattedActivities = formatActivities(activities);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Header del Perfil */}
@@ -46,9 +107,11 @@ export default async function Profile() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary" />
-                  </div>
+                  <Avatar 
+                    src={session.user.image} 
+                    alt={session.user.name || "Usuario"}
+                    size="md"
+                  />
                   <div>
                     <CardTitle>Información Personal</CardTitle>
                     <CardDescription>
@@ -56,10 +119,6 @@ export default async function Profile() {
                     </CardDescription>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -121,31 +180,50 @@ export default async function Profile() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-50 overflow-y-auto">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center">
-                      <ShoppingBag className="h-4 w-4 text-green-500" />
+                {formattedActivities.length > 0 ? (
+                  formattedActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          activity.type === 'login' 
+                            ? 'bg-green-500/10' 
+                            : 'bg-blue-500/10'
+                        }`}>
+                          <ShoppingBag className={`h-4 w-4 ${
+                            activity.type === 'login' 
+                              ? 'text-green-500' 
+                              : 'text-blue-500'
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{activity.title}</p>
+                          <p className="text-xs text-muted-foreground">{activity.time}</p>
+                          {activity.metadata?.orderTotal && (
+                            <p className="text-xs text-blue-600 font-medium">
+                              Total: ${activity.metadata.orderTotal.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {activity.type === 'login' ? 'Login' : 'Pedido'}
+                      </Badge>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">Sesión iniciada</p>
-                      <p className="text-xs text-muted-foreground">Hace unos momentos</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">
+                      No hay actividad reciente
+                    </p>
+                    <Link href="/catalog">
+                      <Button variant="outline" size="sm" className="mt-2">
+                        Explorar Catálogo
+                      </Button>
+                    </Link>
                   </div>
-                  <Badge variant="secondary" className="text-xs">Reciente</Badge>
-                </div>
-                
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">
-                    No hay más actividad reciente
-                  </p>
-                  <Link href="/catalog">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      Explorar Catálogo
-                    </Button>
-                  </Link>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -181,11 +259,13 @@ export default async function Profile() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center p-4 bg-primary/5 rounded-lg">
-                <div className="text-2xl font-bold text-primary">0</div>
+                <div className="text-2xl font-bold text-primary">{statistics.totalOrders}</div>
                 <p className="text-sm text-muted-foreground">Pedidos Realizados</p>
               </div>
               <div className="text-center p-4 bg-green-500/5 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">$0</div>
+                <div className="text-2xl font-bold text-green-600">
+                  ${statistics.totalSpent.toFixed(2)}
+                </div>
                 <p className="text-sm text-muted-foreground">Total Gastado</p>
               </div>
             </CardContent>

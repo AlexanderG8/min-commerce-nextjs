@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Decimal } from "@prisma/client/runtime/library";
 
 interface OrderItem {
   id: number;
@@ -101,7 +100,7 @@ export default function OrderConfirmationPage() {
             <p>{error || "No se encontró la orden solicitada"}</p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button onClick={() => router.push("/")}>Volver al inicio</Button>
+            <Button onClick={() => router.back()}>Regresar</Button>
           </CardFooter>
         </Card>
       </div>
@@ -189,8 +188,8 @@ export default function OrderConfirmationPage() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={() => router.push("/")}>
-            Volver a la tienda
+          <Button variant="outline" onClick={() => router.back()}>
+            Regresar
           </Button>
           <Button onClick={() => window.print()}>
             Imprimir recibo

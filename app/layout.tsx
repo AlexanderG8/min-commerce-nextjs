@@ -24,7 +24,9 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1">
+              {children}
+            </main>
             <footer className="border-t py-6 bg-background">
               <div className="container px-4 md:px-6">
                 <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
