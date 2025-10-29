@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, ShoppingCart, Chrome } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function SignInPage() {
+// Componente que maneja los search params
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -131,5 +132,26 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Componente de loading para Suspense
+function SignInLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span>Cargando...</span>
+      </div>
+    </div>
+  );
+}
+
+// Componente principal que envuelve SignInContent en Suspense
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInLoading />}>
+      <SignInContent />
+    </Suspense>
   );
 }
