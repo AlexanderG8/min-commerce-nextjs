@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Avatar } from "@/components/ui/avatar";
 import { User, Mail, Calendar, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { ActivityLog, ActivityDisplayItem } from "@/types/activity";
@@ -106,9 +107,11 @@ export default async function Profile() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary" />
-                  </div>
+                  <Avatar 
+                    src={session.user.image} 
+                    alt={session.user.name || "Usuario"}
+                    size="md"
+                  />
                   <div>
                     <CardTitle>Información Personal</CardTitle>
                     <CardDescription>

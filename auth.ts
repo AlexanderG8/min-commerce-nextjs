@@ -73,6 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.sub && session.user) {
         session.user.id = token.sub
         session.user.role = token.role as "admin" | "user"
+        session.user.image = token.picture as string
       }
       return session
     },
@@ -85,6 +86,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.sub = user.id
         token.role = user.email === "mpalexanderg@gmail.com" ? "admin" : "user"
+        token.picture = user.image
       }
       return token
     },
