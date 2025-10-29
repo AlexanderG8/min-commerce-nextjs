@@ -8,26 +8,43 @@ const protectedRoutes = ['/profile', '/order']
 const adminRoutes = ['/admin']
 
 // Función optimizada para verificar autenticación usando cookies directamente
-function getSessionFromCookies(request: NextRequest) {
+async function getSessionFromCookies(request: NextRequest) {
   console.log('🔍 Iniciando verificación de sesión...');
   
-  // Check for session token
-  const sessionToken = request.cookies.get('authjs.session-token')?.value;
+  // Log all cookies for debugging in production
+  const allCookies = request.cookies.getAll();
+  console.log('🍪 Cookies disponibles:', allCookies.map(c => `${c.name}: ${c.value.substring(0, 20)}...`));
+  
+  // Try multiple possible cookie names for different environments
+  const possibleSessionTokenNames = [
+    'authjs.session-token',
+    '__Secure-authjs.session-token', 
+    'next-auth.session-token',
+    '__Secure-next-auth.session-token'
+  ];
+  
+  let sessionToken = null;
+  let tokenName = '';
+  
+  for (const name of possibleSessionTokenNames) {
+    const token = request.cookies.get(name)?.value;
+    if (token) {
+      sessionToken = token;
+      tokenName = name;
+      console.log(`✅ Token encontrado en: ${name}`);
+      break;
+    }
+  }
   
   if (!sessionToken) {
-    console.log('❌ No se encontró token de sesión');
+    console.log('❌ No se encontró token de sesión en ninguna cookie');
     return null;
   }
 
-  console.log('✅ Token de sesión encontrado');
-
+  console.log('✅ Token de sesión encontrado, usuario autenticado');
+  
   // For NextAuth v5 with database sessions, we can't decode the encrypted token
-  // in middleware. Instead, we'll use a simple approach:
-  // If there's a session token, assume the user is authenticated
-  // Pages will handle role verification through server components
-  
-  console.log('✅ Usuario autenticado (token de sesión presente)');
-  
+  // in middleware. We'll assume the user is authenticated if there's a session token
   return { 
     user: { 
       email: 'authenticated-user', // Placeholder
