@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Definición de tipo para los parámetros
 type RouteParams = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 // GET /api/orders/[id] - Obtener una orden por ID
@@ -14,8 +14,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    // Acceder al ID directamente desde params
-    const orderId = params.id;
+    // Esperar los parámetros y luego acceder al ID
+    const { id: orderId } = await params;
     
     if (!orderId) {
       return NextResponse.json(

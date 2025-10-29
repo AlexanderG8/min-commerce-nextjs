@@ -19,6 +19,8 @@ type CartStore = {
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 };
 // Creo el store del carrito
 export const useCartStore = create<CartStore>()(
@@ -26,6 +28,12 @@ export const useCartStore = create<CartStore>()(
     // Defino el estado inicial del carrito
     (set, get) => ({
       items: [],
+      _hasHydrated: false,
+      setHasHydrated: (state) => {
+        set({
+          _hasHydrated: state
+        });
+      },
       // Método para agregar un ítem al carrito
       addItem: (item) => set((state) => {
         const existingItem = state.items.find((i) => i.id === item.id);
@@ -71,7 +79,9 @@ export const useCartStore = create<CartStore>()(
     {
       name: 'cart-storage',
       storage: createJSONStorage(() => localStorage),
-      skipHydration: true,
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

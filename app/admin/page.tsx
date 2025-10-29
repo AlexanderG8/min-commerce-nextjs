@@ -33,6 +33,30 @@ interface Order {
   itemCount: number;
 }
 
+interface OrderItem {
+  id: number;
+  productId: string;
+  quantity: number;
+  price: number;
+  product: {
+    name: string;
+    imageUrl: string;
+  };
+}
+
+interface DetailedOrder {
+  id: number;
+  clientName: string;
+  clientEmail: string;
+  clientAddress: string;
+  clientCity: string;
+  clientPostalCode: string;
+  clientPhone: string;
+  total: number;
+  createdAt: string;
+  items: OrderItem[];
+}
+
 interface ProductFormData {
   name: string;
   description: string;
@@ -59,6 +83,11 @@ export default function AdminPage() {
     stock: '',
     imageUrl: ''
   });
+  
+  // Estados para los detalles de orden
+  const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
+  const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
 
   // Verificar autorización
   useEffect(() => {
@@ -71,6 +100,27 @@ export default function AdminPage() {
     
     fetchData();
   }, [session, status, router]);
+
+  // Obtener detalles de una orden específica
+  const fetchOrderDetails = async (orderId: number) => {
+    try {
+      setLoadingOrderDetails(true);
+      const response = await fetch(`/api/orders/${orderId}`);
+      
+      if (response.ok) {
+        const orderData = await response.json();
+        setSelectedOrder(orderData);
+        setShowOrderDetails(true);
+      } else {
+        toast.error('Error al cargar los detalles de la orden');
+      }
+    } catch (error) {
+      console.error('Error al cargar detalles de orden:', error);
+      toast.error('Error al cargar los detalles de la orden');
+    } finally {
+      setLoadingOrderDetails(false);
+    }
+  };
 
   // Cargar datos
   const fetchData = async () => {
@@ -198,18 +248,21 @@ export default function AdminPage() {
         <Button
           variant={activeTab === 'dashboard' ? 'default' : 'outline'}
           onClick={() => setActiveTab('dashboard')}
+          title="Ver dashboard"
         >
           Dashboard
         </Button>
         <Button
           variant={activeTab === 'products' ? 'default' : 'outline'}
           onClick={() => setActiveTab('products')}
+          title="Ver productos"
         >
           Productos
         </Button>
         <Button
           variant={activeTab === 'orders' ? 'default' : 'outline'}
           onClick={() => setActiveTab('orders')}
+          title="Ver órdenes"
         >
           Órdenes
         </Button>
@@ -288,7 +341,7 @@ export default function AdminPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Gestión de Productos</h2>
-            <Button onClick={() => setShowProductForm(true)}>
+            <Button onClick={() => setShowProductForm(true)} title="Agregar nuevo producto">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Producto
             </Button>
@@ -401,6 +454,7 @@ export default function AdminPage() {
                           <Button
                             size="sm"
                             variant="outline"
+                            title="Editar producto"
                             onClick={() => handleEditProduct(product)}
                           >
                             <Edit className="h-4 w-4" />
@@ -408,6 +462,7 @@ export default function AdminPage() {
                           <Button
                             size="sm"
                             variant="destructive"
+                            title="Eliminar producto"
                             onClick={() => handleDeleteProduct(product.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -430,6 +485,108 @@ export default function AdminPage() {
             <h2 className="text-2xl font-bold">Gestión de Órdenes</h2>
           </div>
 
+          {/* Card de detalles de orden (no modal) */}
+          {showOrderDetails && selectedOrder && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Detalles de la Ordenn #{selectedOrder.id}</CardTitle>
+                <p className="text-muted-foreground">
+                  {new Date(selectedOrder.createdAt).toLocaleDateString("es-ES", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Información del cliente */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Información del Cliente</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nombre</p>
+                      <p className="font-medium">{selectedOrder.clientName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{selectedOrder.clientEmail}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Teléfono</p>
+                      <p className="font-medium">{selectedOrder.clientPhone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Dirección</p>
+                      <p className="font-medium">{selectedOrder.clientAddress}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-muted-foreground">Ciudad y Código Postal</p>
+                      <p className="font-medium">{selectedOrder.clientCity}, {selectedOrder.clientPostalCode}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Productos */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Productos Ordenados</h3>
+                  <div className="space-y-3">
+                    {selectedOrder.items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <div className="relative h-16 w-16 overflow-hidden rounded-md bg-gray-100">
+                          {item.product.imageUrl ? (
+                            <img
+                              src={item.product.imageUrl}
+                              alt={item.product.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-gray-400">
+                              <Package className="h-6 w-6" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.product.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Cantidad: {item.quantity} × ${item.price.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">${(item.quantity * item.price).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center text-lg font-semibold">
+                    <span>Total de la Orden:</span>
+                    <span className="text-2xl">${selectedOrder.total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Botón de cerrar */}
+                <div className="flex space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowOrderDetails(false);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tabla de órdenes */}
           <Card>
             <CardContent>
               <Table>
@@ -459,7 +616,9 @@ export default function AdminPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => router.push(`/order/confirmation/${order.id}`)}
+                          title="Ver detalles de la orden"
+                          onClick={() => fetchOrderDetails(order.id)}
+                          disabled={loadingOrderDetails}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

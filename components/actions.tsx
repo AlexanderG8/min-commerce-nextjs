@@ -9,8 +9,8 @@ export function OrderActions() {
   
   return (
     <CardFooter className="flex justify-between">
-      <Button variant="outline" onClick={() => router.push("/")}>
-        Volver a la tienda
+      <Button variant="outline" onClick={() => router.back()}>
+        Regresar
       </Button>
       <Button onClick={() => window.print()}>
         Imprimir recibo

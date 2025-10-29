@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useSession } from "next-auth/react";
 import { useCartStore } from "@/lib/store/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, User } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Esquema de validación para el formulario
 const checkoutSchema = z.object({
@@ -27,18 +29,59 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const { items, getTotalPrice, clearCart } = useCartStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
   });
+
+  // Cargar perfil del usuario logueado
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (session?.user) {
+        try {
+          const response = await fetch('/api/users/me');
+          if (response.ok) {
+            const profile = await response.json();
+            setUserProfile(profile);
+            
+            // Pre-llenar el formulario con datos del usuario
+            if (profile.name) setValue('name', profile.name);
+            if (profile.email) setValue('email', profile.email);
+          }
+        } catch (error) {
+          console.error('Error al cargar perfil:', error);
+        } finally {
+          setLoadingProfile(false);
+        }
+      } else {
+        setLoadingProfile(false);
+      }
+    };
+
+    if (status !== 'loading') {
+      loadUserProfile();
+    }
+  }, [session, status, setValue]);
+
+  // Redirigir a login si no está autenticado
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/signin?callbackUrl=' + encodeURIComponent('/checkout'));
+    }
+  }, [status, router]);
 
   // Efecto para manejar la redirección después de una compra exitosa
   useEffect(() => {
@@ -46,7 +89,8 @@ export default function CheckoutPage() {
       router.push(`/order/confirmation/${orderId}`);
     }
   }, [orderSuccess, orderId, router]);
-   // Efecto para redirigir si el carrito está vacío (solo si no es después de una compra exitosa)
+
+  // Efecto para redirigir si el carrito está vacío (solo si no es después de una compra exitosa)
   useEffect(() => {
     if (items.length === 0 && !orderSuccess) {
       router.push("/cart");
@@ -73,6 +117,7 @@ export default function CheckoutPage() {
         })),
         total: getTotalPrice()
       };
+
       // Enviar el pedido a la API
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -88,7 +133,7 @@ export default function CheckoutPage() {
       }
 
       const result = await response.json();
-      // Marcar la orden como existosa y guardar el ID
+      // Marcar la orden como exitosa y guardar el ID
       setOrderSuccess(true);
       setOrderId(result.id);
       // Limpiar el carrito después de una compra exitosa
@@ -102,6 +147,23 @@ export default function CheckoutPage() {
     }
   };
 
+  // Mostrar loading mientras se carga la sesión o el perfil
+  if (status === 'loading' || loadingProfile) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado, no mostrar nada (se redirigirá)
+  if (!session?.user) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-6">Checkout</h1>
@@ -110,7 +172,20 @@ export default function CheckoutPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Información de envío</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <User className="h-5 w-5" />
+                <h2 className="text-xl font-semibold">Información de envío</h2>
+              </div>
+
+              {userProfile && (
+                <Alert className="mb-4">
+                  <AlertDescription>
+                    Hola <strong>{userProfile.name || session.user.email}</strong>! 
+                    Hemos pre-llenado algunos campos con tu información. 
+                    Puedes modificarlos si es necesario.
+                  </AlertDescription>
+                </Alert>
+              )}
               
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
