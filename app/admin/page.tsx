@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Plus, Edit, Trash2, Eye, Package, ShoppingCart, Users, DollarSign } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Package, ShoppingCart, Users, DollarSign, Activity, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -71,10 +71,13 @@ export default function AdminPage() {
   const router = useRouter();
   
   // Estados
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'logs'>('dashboard');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState<ProductFormData>({
@@ -99,8 +102,12 @@ export default function AdminPage() {
       return;
     }
     
-    fetchData();
-  }, [session, status, router]);
+    // Cargar datos iniciales para el dashboard
+    if (activeTab === 'dashboard') {
+      fetchProducts();
+      fetchOrders();
+    }
+  }, [session, status, router, activeTab]);
 
   // Obtener detalles de una orden específica
   const fetchOrderDetails = async (orderId: number) => {
@@ -123,29 +130,63 @@ export default function AdminPage() {
     }
   };
 
-  // Cargar datos
-  const fetchData = async () => {
+  // Cargar productos
+  const fetchProducts = async () => {
     try {
-      setLoading(true);
-      const [productsRes, ordersRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/orders')
-      ]);
+      setLoadingProducts(true);
+      const productsRes = await fetch('/api/products');
       
       if (productsRes.ok) {
         const productsData = await productsRes.json();
         setProducts(productsData);
+      } else {
+        toast.error('Error al cargar los productos');
       }
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      toast.error('Error al cargar los productos');
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+  
+  // Cargar órdenes
+  const fetchOrders = async () => {
+    try {
+      setLoadingOrders(true);
+      const ordersRes = await fetch('/api/orders');
       
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData);
+      } else {
+        toast.error('Error al cargar las órdenes');
       }
     } catch (error) {
-      console.error('Error al cargar datos:', error);
-      toast.error('Error al cargar los datos');
+      console.error('Error al cargar órdenes:', error);
+      toast.error('Error al cargar las órdenes');
     } finally {
-      setLoading(false);
+      setLoadingOrders(false);
+    }
+  };
+  
+  // Cargar logs de actividad
+  const fetchLogs = async () => {
+    try {
+      setLoadingLogs(true);
+      const response = await fetch('/api/admin/logs');
+      
+      if (response.ok) {
+        const logsData = await response.json();
+        setLogs(logsData);
+      } else {
+        toast.error('Error al cargar los logs');
+      }
+    } catch (error) {
+      console.error('Error al cargar logs:', error);
+      toast.error('Error al cargar los logs');
+    } finally {
+      setLoadingLogs(false);
     }
   };
 
@@ -222,7 +263,8 @@ export default function AdminPage() {
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const lowStockProducts = products.filter(p => p.stock < 10).length;
 
-  if (status === "loading" || loading) {
+  // Solo mostrar pantalla de carga durante la autenticación inicial
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -248,91 +290,120 @@ export default function AdminPage() {
       <div className="flex space-x-1 mb-8">
         <Button
           variant={activeTab === 'dashboard' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => {
+            setActiveTab('dashboard');
+            fetchProducts();
+            fetchOrders();
+          }}
           title="Ver dashboard"
         >
           Dashboard
         </Button>
         <Button
           variant={activeTab === 'products' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('products')}
+          onClick={() => {
+            setActiveTab('products');
+            fetchProducts();
+          }}
           title="Ver productos"
         >
           Productos
         </Button>
         <Button
           variant={activeTab === 'orders' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('orders')}
+          onClick={() => {
+            setActiveTab('orders');
+            fetchOrders();
+          }}
           title="Ver órdenes"
         >
           Órdenes
+        </Button>
+        <Button
+          variant={activeTab === 'logs' ? 'default' : 'outline'}
+          onClick={() => {
+            setActiveTab('logs');
+            fetchLogs();
+          }}
+          title="Ver logs de actividad"
+        >
+          Logs
         </Button>
       </div>
 
       {/* Dashboard */}
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Productos</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalProducts}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Órdenes</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalOrders}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Stock Bajo</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{lowStockProducts}</div>
-              </CardContent>
-            </Card>
-          </div>
+          {(loadingProducts || loadingOrders) ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+              <span className="ml-3">Cargando datos...</span>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Productos</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{totalProducts}</div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Órdenes</CardTitle>
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{totalOrders}</div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Stock Bajo</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{lowStockProducts}</div>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Productos con stock bajo */}
-          {lowStockProducts > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Productos con Stock Bajo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {products
-                    .filter(p => p.stock < 10)
-                    .map(product => (
-                      <div key={product.id} className="flex justify-between items-center p-2 border rounded">
-                        <span>{product.name}</span>
-                        <Badge variant="destructive">Stock: {product.stock}</Badge>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
+              {/* Productos con stock bajo */}
+              {lowStockProducts > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Productos con Stock Bajo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {products
+                        .filter(p => p.stock < 10)
+                        .map(product => (
+                          <div key={product.id} className="flex justify-between items-center p-2 border rounded">
+                            <span>{product.name}</span>
+                            <Badge variant="destructive">Stock: {product.stock}</Badge>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
       )}
@@ -429,56 +500,147 @@ export default function AdminPage() {
           {/* Tabla de productos */}
           <Card>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Precio</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>${product.price.toFixed(2)}</TableCell>
-                      <TableCell>{product.stock}</TableCell>
-                      <TableCell>
-                        <Badge variant={product.stock < 10 ? 'destructive' : 'default'}>
-                          {product.stock < 10 ? 'Stock Bajo' : 'Disponible'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            title="Editar producto"
-                            onClick={() => handleEditProduct(product)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            title="Eliminar producto"
-                            onClick={() => handleDeleteProduct(product.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {loadingProducts ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                  <span className="ml-3">Cargando productos...</span>
+                </div>
+              ) : (
+                <div className="max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Precio</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>${product.price.toFixed(2)}</TableCell>
+                          <TableCell>{product.stock}</TableCell>
+                          <TableCell>
+                            <Badge variant={product.stock < 10 ? 'destructive' : 'default'}>
+                              {product.stock < 10 ? 'Stock Bajo' : 'Disponible'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                title="Editar producto"
+                                onClick={() => handleEditProduct(product)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                title="Eliminar producto"
+                                onClick={() => handleDeleteProduct(product.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       )}
 
+      {/* Gestión de Logs */}
+      {activeTab === 'logs' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Logs de Actividad</h2>
+            <Button onClick={fetchLogs} variant="outline" title="Refrescar logs">
+              Refrescar
+            </Button>
+          </div>
+          
+          <Card>
+            <CardContent className="pt-6">
+              {loadingLogs ? (
+                <div className="flex justify-center p-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              ) : (
+                <div className="max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow>
+                        <TableHead>Usuario</TableHead>
+                        <TableHead>Acción</TableHead>
+                        <TableHead>Descripción</TableHead>
+                        <TableHead>Fecha</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{log.user?.name || 'Usuario desconocido'}</p>
+                              <p className="text-xs text-muted-foreground">{log.user?.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              log.action === 'LOGIN' ? 'default' : 
+                              log.action === 'LOGOUT' ? 'secondary' : 
+                              log.action === 'ORDER_CREATED' ? 'outline' : 'default'
+                            }>
+                              {log.action === 'LOGIN' && (
+                                <LogIn className="h-3 w-3 mr-1" />
+                              )}
+                              {log.action === 'LOGOUT' && (
+                                <LogOut className="h-3 w-3 mr-1" />
+                              )}
+                              {log.action === 'ORDER_CREATED' && (
+                                <ShoppingCart className="h-3 w-3 mr-1" />
+                              )}
+                              {log.action}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{log.description}</TableCell>
+                          <TableCell>
+                            {new Date(log.createdAt).toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {logs.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No hay logs de actividad disponibles
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
       {/* Gestión de Órdenes */}
       {activeTab === 'orders' && (
         <div className="space-y-6">
@@ -592,44 +754,53 @@ export default function AdminPage() {
           {/* Tabla de órdenes */}
           <Card>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>#{order.id}</TableCell>
-                      <TableCell className="font-medium">{order.clientName}</TableCell>
-                      <TableCell>{order.clientEmail}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
-                      <TableCell>{order.itemCount}</TableCell>
-                      <TableCell>
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          title="Ver detalles de la orden"
-                          onClick={() => fetchOrderDetails(order.id)}
-                          disabled={loadingOrderDetails}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {loadingOrders ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                  <span className="ml-3">Cargando órdenes...</span>
+                </div>
+              ) : (
+                <div className="max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Items</TableHead>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell>#{order.id}</TableCell>
+                          <TableCell className="font-medium">{order.clientName}</TableCell>
+                          <TableCell>{order.clientEmail}</TableCell>
+                          <TableCell>${order.total.toFixed(2)}</TableCell>
+                          <TableCell>{order.itemCount}</TableCell>
+                          <TableCell>
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              title="Ver detalles de la orden"
+                              onClick={() => fetchOrderDetails(order.id)}
+                              disabled={loadingOrderDetails}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -14,6 +14,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages:{
     signIn: "/", // Redirección si no hay sesión
   },
+  events: {
+    async signOut({ token }) {
+      if (token?.sub) {
+        try {
+          await logUserActivity(
+            parseInt(token.sub),
+            'LOGOUT',
+            'Usuario cerró sesión exitosamente'
+          );
+        } catch (error) {
+          console.error('Error al registrar logout:', error);
+        }
+      }
+    },
+  },
   callbacks: {
     // Se ejecuta después del login exitoso con el proveedor (Google)
     // Aquí registramos automáticamente al usuario en nuestra base de datos

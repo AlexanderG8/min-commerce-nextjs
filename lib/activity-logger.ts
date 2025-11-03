@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 
-export type ActivityAction = 'LOGIN' | 'ORDER_CREATED';
+export type ActivityAction = 'LOGIN' | 'LOGOUT' | 'ORDER_CREATED';
 
 export interface ActivityMetadata {
   orderId?: number;

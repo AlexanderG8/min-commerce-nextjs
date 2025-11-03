@@ -1,7 +1,7 @@
 export interface ActivityLog {
   id: number;
   userId: number;
-  action: 'LOGIN' | 'ORDER_CREATED';
+  action: 'LOGIN' | 'LOGOUT' | 'ORDER_CREATED';
   description: string;
   metadata?: {
     orderId?: number;
